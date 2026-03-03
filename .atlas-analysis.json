@@ -1,0 +1,92 @@
+{
+  "projectType": "saas",
+  "projectName": "ETHGlobal Explorer",
+  "projectDescription": "A searchable database of 13,000+ ETHGlobal hackathon projects with filtering by events, prizes, and tags.",
+  "theme": "palm",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#7C3AED",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "features"
+            ]
+          },
+          {
+            "group": "Getting Started",
+            "pages": [
+              "getting-started/using-the-explorer",
+              "getting-started/search-and-filters"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/project-search",
+              "features/event-filtering",
+              "features/prize-filtering",
+              "features/tag-filtering"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "development/local-setup",
+              "development/environment-variables"
+            ]
+          },
+          {
+            "group": "Data Pipeline",
+            "pages": [
+              "development/data-pipeline/overview",
+              "development/data-pipeline/scraping-projects",
+              "development/data-pipeline/uploading-data",
+              "development/data-pipeline/updating-database"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "api-reference/overview",
+              "api-reference/projects",
+              "api-reference/events",
+              "api-reference/rate-limiting"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/database-schema",
+              "architecture/frontend",
+              "architecture/deployment"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Search across 13,000+ ETHGlobal hackathon projects",
+    "Filter by event, prize sponsor, and tags",
+    "Rate-limited API endpoints for projects and events",
+    "Automated web scraping pipeline for data collection",
+    "Supabase backend with relational prize-project mapping"
+  ],
+  "publicApiSurface": [
+    "GET /api/projects - Query projects with pagination and filters",
+    "GET /api/events - List all ETHGlobal events",
+    "scrape_ethglobal_showcase() - Python function to scrape project data",
+    "upload_projects() - Python function to upload projects to database"
+  ]
+}
