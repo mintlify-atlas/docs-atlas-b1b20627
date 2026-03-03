@@ -1,0 +1,84 @@
+---
+title: API overview
+description: Learn how to interact with the ETHGlobal Explorer REST API to access projects and events data
+---
+
+The ETHGlobal Explorer API provides programmatic access to hackathon projects and events data from ETHGlobal competitions.
+
+## Base URL
+
+All API endpoints are relative to your deployment domain:
+
+```
+https://yourdomain.com/api
+```
+
+## Available endpoints
+
+The API currently provides two main endpoints:
+
+- **GET /api/projects** - Retrieve hackathon projects with filtering and pagination
+- **GET /api/events** - Retrieve ETHGlobal events with search and pagination
+
+## Authentication
+
+The API is publicly accessible and does not require authentication. All endpoints are open for read-only access.
+
+## Rate limiting
+
+To ensure fair usage and system stability, all API endpoints are rate limited:
+
+- **Limit**: 1000 requests per 15-minute window
+- **Tracking**: Per IP address (via `x-forwarded-for` header)
+- **Response**: 429 status code when limit exceeded
+
+See the [rate limiting](/api-reference/rate-limiting) documentation for detailed information.
+
+## Response format
+
+All API responses are returned in JSON format with a consistent structure:
+
+```json
+{
+  "data": [...],
+  "totalCount": 0
+}
+```
+
+### Error responses
+
+When an error occurs, the API returns an appropriate HTTP status code with an error object:
+
+```json
+{
+  "error": "Error type",
+  "message": "Detailed error message"
+}
+```
+
+Common status codes:
+
+- `200` - Successful request
+- `429` - Rate limit exceeded
+- `500` - Internal server error
+
+## Pagination
+
+Both endpoints support pagination through the `page` query parameter. Each page returns up to 100 items.
+
+The response includes a `totalCount` field to help calculate the total number of pages:
+
+```javascript
+const totalPages = Math.ceil(totalCount / 100);
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Projects endpoint" icon="folder" href="/api-reference/projects">
+    Explore hackathon projects with advanced filtering
+  </Card>
+  <Card title="Events endpoint" icon="calendar" href="/api-reference/events">
+    Browse ETHGlobal hackathon events
+  </Card>
+</CardGroup>

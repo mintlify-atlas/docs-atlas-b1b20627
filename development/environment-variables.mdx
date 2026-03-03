@@ -1,0 +1,140 @@
+---
+title: Environment variables
+description: Required environment configuration for ETHGlobal Explorer
+---
+
+ETHGlobal Explorer requires environment variables to connect to the Supabase database. This page documents all required and optional environment variables.
+
+## Web app environment variables
+
+Create a `.env` file in the `web-app` directory with the following variables:
+
+### SUPABASE_URL
+
+<ParamField path="SUPABASE_URL" type="string" required>
+  The URL of your Supabase project. This is used by the Next.js API routes to connect to the database.
+  
+  **Example:** `https://your-project-id.supabase.co`
+</ParamField>
+
+This variable is validated in the API routes (`src/app/api/projects/route.ts:23` and `src/app/api/events/route.ts:23`). If not set, the application will throw an error: `SUPABASE_URL environment variable is not set`.
+
+### SUPABASE_SERVICE_KEY
+
+<ParamField path="SUPABASE_SERVICE_KEY" type="string" required>
+  The service role key for your Supabase project. This key has elevated permissions and should be kept secure.
+  
+  **Example:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+</ParamField>
+
+This variable is validated in the API routes (`src/app/api/projects/route.ts:26` and `src/app/api/events/route.ts:26`). If not set, the application will throw an error: `SUPABASE_SERVICE_KEY environment variable is not set`.
+
+<Warning>
+  The service key grants full access to your database. Never commit this key to version control or expose it in client-side code.
+</Warning>
+
+## Python scripts environment variables
+
+The Python scraping scripts also require Supabase credentials. Create a `.env` file in the `scripts` directory (or use the same credentials from the root).
+
+### Required variables
+
+| Variable | Description | Used in |
+|----------|-------------|----------|
+| `SUPABASE_URL` | Your Supabase project URL | All Python scripts |
+| `SUPABASE_SERVICE_KEY` | Your Supabase service role key | All Python scripts |
+
+The Python scripts load environment variables using `python-dotenv`:
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+supabase_url = os.getenv("SUPABASE_URL")
+supabase_service_key = os.getenv("SUPABASE_SERVICE_KEY")
+```
+
+## Setting up environment variables
+
+<Steps>
+  <Step title="Get your Supabase credentials">
+    1. Go to your [Supabase dashboard](https://app.supabase.com)
+    2. Select your project
+    3. Navigate to Settings > API
+    4. Copy the **Project URL** (this is your `SUPABASE_URL`)
+    5. Copy the **service_role** key (this is your `SUPABASE_SERVICE_KEY`)
+  </Step>
+
+  <Step title="Create .env file for web app">
+    Create a `.env` file in the `web-app` directory:
+    
+    ```bash
+    cd web-app
+    touch .env
+    ```
+    
+    Add your credentials:
+    
+    ```bash
+    SUPABASE_URL=https://your-project-id.supabase.co
+    SUPABASE_SERVICE_KEY=your-service-role-key-here
+    ```
+  </Step>
+
+  <Step title="Create .env file for Python scripts (optional)">
+    If you plan to run the scraping scripts, create a `.env` file in the `scripts` directory:
+    
+    ```bash
+    cd ../scripts
+    touch .env
+    ```
+    
+    Add the same credentials:
+    
+    ```bash
+    SUPABASE_URL=https://your-project-id.supabase.co
+    SUPABASE_SERVICE_KEY=your-service-role-key-here
+    ```
+  </Step>
+
+  <Step title="Add .env to .gitignore">
+    Ensure your `.env` files are not committed to version control:
+    
+    ```bash .gitignore
+    # Environment variables
+    .env
+    .env.local
+    .env.*.local
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  **Never commit `.env` files to Git.** These files contain sensitive credentials that should not be shared publicly.
+</Warning>
+
+## Verifying your setup
+
+To verify your environment variables are set up correctly:
+
+1. Start the development server: `npm run dev`
+2. Navigate to `http://localhost:3000`
+3. If you see project data loading, your environment variables are configured correctly
+4. If you see an error about missing environment variables, check that your `.env` file is in the correct location and formatted properly
+
+## Production deployment
+
+When deploying to production (e.g., Vercel), set these environment variables in your hosting provider's dashboard rather than using a `.env` file.
+
+### Vercel
+
+1. Go to your project settings in Vercel
+2. Navigate to **Environment Variables**
+3. Add `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
+4. Redeploy your application
+
+<Note>
+  The Next.js API routes include rate limiting (1000 requests per 15-minute window per IP) to protect your database from abuse.
+</Note>

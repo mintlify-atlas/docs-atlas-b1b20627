@@ -1,0 +1,177 @@
+---
+title: GET /api/projects
+description: Retrieve hackathon projects with filtering, search, and pagination capabilities
+---
+
+Retrieve a paginated list of hackathon projects from ETHGlobal competitions. Supports filtering by event, prize, tag, and full-text search.
+
+## Endpoint
+
+```
+GET /api/projects
+```
+
+## Query parameters
+
+All query parameters are optional.
+
+<ParamField query="page" type="number" default="1">
+  Page number for pagination. Each page returns up to 100 projects.
+</ParamField>
+
+<ParamField query="q" type="string">
+  Search term to filter projects by title. Uses case-insensitive pattern matching.
+</ParamField>
+
+<ParamField query="event" type="string">
+  Filter projects by event name. Must match the exact event identifier (e.g., `ethonline2024`, `ethglobal-singapore-2024`).
+</ParamField>
+
+<ParamField query="prize" type="string">
+  Filter projects by prize name. Returns only projects that won the specified prize.
+</ParamField>
+
+<ParamField query="tag" type="string">
+  Filter projects by tag. Searches for the tag term in project descriptions using case-insensitive pattern matching.
+</ParamField>
+
+## Response
+
+<ResponseField name="data" type="array">
+  Array of project objects matching the query criteria.
+  
+  <Expandable title="Project object">
+    <ResponseField name="id" type="number">
+      Unique identifier for the project.
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Project title.
+    </ResponseField>
+    
+    <ResponseField name="description" type="string">
+      Project description.
+    </ResponseField>
+    
+    <ResponseField name="url" type="string">
+      URL to the project showcase page on ETHGlobal.
+    </ResponseField>
+    
+    <ResponseField name="event" type="string">
+      Event identifier where the project was submitted.
+    </ResponseField>
+    
+    <ResponseField name="project_prizes" type="array">
+      Array of prizes won by the project.
+      
+      <Expandable title="Prize object">
+        <ResponseField name="name" type="string">
+          Name of the prize.
+        </ResponseField>
+        
+        <ResponseField name="img_url" type="string">
+          URL to the prize sponsor logo image.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="totalCount" type="number">
+  Total number of projects matching the query criteria (across all pages).
+</ResponseField>
+
+## Example request
+
+<CodeGroup>
+```bash cURL
+curl https://yourdomain.com/api/projects?page=1&q=defi&event=ethonline2024
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  page: '1',
+  q: 'defi',
+  event: 'ethonline2024'
+});
+
+const response = await fetch(`/api/projects?${params}`);
+const { data, totalCount } = await response.json();
+```
+
+```python Python
+import requests
+
+params = {
+    'page': 1,
+    'q': 'defi',
+    'event': 'ethonline2024'
+}
+
+response = requests.get('https://yourdomain.com/api/projects', params=params)
+data = response.json()
+```
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "data": [
+    {
+      "id": 12345,
+      "title": "DeFi Portfolio Tracker",
+      "description": "A decentralized portfolio tracking application for DeFi investments",
+      "url": "https://ethglobal.com/showcase/defi-portfolio-tracker-abc123",
+      "event": "ethonline2024",
+      "project_prizes": [
+        {
+          "name": "Best DeFi Project",
+          "img_url": "https://ethglobal.b-cdn.net/organizations/example/logo.png"
+        },
+        {
+          "name": "Chainlink Pool Prize",
+          "img_url": "https://ethglobal.b-cdn.net/organizations/chainlink/logo.png"
+        }
+      ]
+    }
+  ],
+  "totalCount": 156
+}
+```
+
+## Implementation details
+
+The endpoint implements the following behavior (from route.ts:75-143):
+
+- Returns 100 items per page
+- Orders results by ID in descending order (newest first)
+- Search term (`q`) uses case-insensitive ILIKE pattern matching on project titles
+- Prize filtering performs a join with the `project_prizes` table
+- Tag filtering searches within project descriptions
+- Multiple filters can be combined (they are applied with AND logic)
+
+## Error responses
+
+### 429 Too Many Requests
+
+Returned when the rate limit is exceeded:
+
+```json
+{
+  "error": "Too many requests"
+}
+```
+
+See [rate limiting](/api-reference/rate-limiting) for details.
+
+### 500 Internal Server Error
+
+Returned when a server error occurs:
+
+```json
+{
+  "error": "Internal Server Error",
+  "message": "Detailed error message"
+}
+```

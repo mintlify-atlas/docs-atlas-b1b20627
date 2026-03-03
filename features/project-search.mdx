@@ -1,0 +1,91 @@
+---
+title: Project search
+description: Search ETHGlobal projects by title with real-time filtering
+---
+
+ETHGlobal Explorer's search functionality allows you to quickly find projects by searching their titles. The search performs case-insensitive matching and updates results in real-time as you type.
+
+## How it works
+
+The search feature queries the Supabase database using PostgreSQL's `ILIKE` operator for case-insensitive pattern matching:
+
+```typescript
+query = query.or(`title.ilike.%${searchTerm}%`)
+```
+
+This implementation:
+- Searches for the search term anywhere within the project title
+- Is case-insensitive (e.g., "eth" matches "ETH", "Eth", and "eth")
+- Performs partial matching (e.g., "swap" matches "QuickSwap", "SwapBox", etc.)
+
+## Real-time search with debouncing
+
+To optimize performance and reduce unnecessary API calls, the search implements a 300ms debounce mechanism:
+
+```typescript
+const timer = setTimeout(() => {
+  setCurrentPage(1);
+  fetchPageData(1);
+  // Update URL parameters
+}, 300);
+```
+
+This means the search waits 300 milliseconds after you stop typing before executing the query, preventing excessive database requests while maintaining a responsive user experience.
+
+## URL parameters
+
+Search terms are automatically synced to the URL, making searches shareable and bookmark-able.
+
+<CodeGroup>
+```text Single word search
+https://ethglobalexplorer.com/?q=wallet
+```
+
+```text Multi-word search
+https://ethglobalexplorer.com/?q=nft%20marketplace
+```
+
+```text Combined with filters
+https://ethglobalexplorer.com/?q=defi&event=ETHGlobal%20Prague
+```
+</CodeGroup>
+
+<Info>
+The `q` parameter in the URL represents your search query. Spaces are automatically URL-encoded as `%20`.
+</Info>
+
+## Search behavior
+
+### What gets searched
+- **Project titles only**: The search currently only matches against project titles
+- **Partial matches**: You don't need to type the complete title
+- **Any position**: The search term can appear anywhere in the title
+
+### What doesn't get searched
+- Project descriptions (use tag filtering for description-based searches)
+- Prize names
+- Event names (use the event filter instead)
+
+<Tip>
+For the best results, try searching for distinctive words from the project name rather than generic terms. For example, search for "swap" instead of "dex" to find decentralized exchange projects with "swap" in their title.
+</Tip>
+
+## Combining with other filters
+
+Search works seamlessly with all other filtering options:
+- **Event filtering**: Find projects matching your search term at specific hackathons
+- **Prize filtering**: Search within projects that won specific prizes
+- **Tag filtering**: Narrow down tagged projects by title
+
+All filters are applied simultaneously, showing only projects that match all selected criteria.
+
+## Implementation reference
+
+The search functionality is implemented in two key locations:
+
+- **Frontend**: `/workspace/source/web-app/src/app/page.tsx:120-125` (search input component)
+- **API**: `/workspace/source/web-app/src/app/api/projects/route.ts:99-102` (database query logic)
+
+<Note>
+The search is limited to 100 results per page. Use pagination controls to browse through larger result sets.
+</Note>

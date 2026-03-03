@@ -1,0 +1,133 @@
+---
+title: GET /api/events
+description: Retrieve ETHGlobal hackathon events with search and pagination
+---
+
+Retrieve a paginated list of ETHGlobal hackathon events. Supports search by event name.
+
+## Endpoint
+
+```
+GET /api/events
+```
+
+## Query parameters
+
+All query parameters are optional.
+
+<ParamField query="page" type="number" default="1">
+  Page number for pagination. Each page returns up to 100 events.
+</ParamField>
+
+<ParamField query="q" type="string">
+  Search term to filter events by name. Uses case-insensitive pattern matching.
+</ParamField>
+
+## Response
+
+<ResponseField name="data" type="array">
+  Array of event objects matching the query criteria.
+  
+  <Expandable title="Event object">
+    <ResponseField name="id" type="number">
+      Unique identifier for the event.
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Event name or identifier (e.g., `ethonline2024`, `ethglobal-singapore-2024`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="totalCount" type="number">
+  Total number of events matching the query criteria (across all pages).
+</ResponseField>
+
+## Example request
+
+<CodeGroup>
+```bash cURL
+curl https://yourdomain.com/api/events?page=1&q=singapore
+```
+
+```javascript JavaScript
+const params = new URLSearchParams({
+  page: '1',
+  q: 'singapore'
+});
+
+const response = await fetch(`/api/events?${params}`);
+const { data, totalCount } = await response.json();
+```
+
+```python Python
+import requests
+
+params = {
+    'page': 1,
+    'q': 'singapore'
+}
+
+response = requests.get('https://yourdomain.com/api/events', params=params)
+data = response.json()
+```
+</CodeGroup>
+
+## Example response
+
+```json
+{
+  "data": [
+    {
+      "id": 42,
+      "name": "ethglobal-singapore-2024"
+    },
+    {
+      "id": 28,
+      "name": "ethsingapore2023"
+    }
+  ],
+  "totalCount": 2
+}
+```
+
+## Implementation details
+
+The endpoint implements the following behavior (from route.ts:72-105):
+
+- Returns 100 items per page
+- Search term (`q`) uses case-insensitive ILIKE pattern matching on event names
+- Results are paginated using range-based queries
+
+## Use cases
+
+This endpoint is particularly useful for:
+
+- Populating event filter dropdowns in UI components
+- Discovering available events for project filtering
+- Building event-specific views or analytics
+
+## Error responses
+
+### 429 Too Many Requests
+
+Returned when the rate limit is exceeded:
+
+```json
+{
+  "error": "Too many requests"
+}
+```
+
+See [rate limiting](/api-reference/rate-limiting) for details.
+
+### 500 Internal Server Error
+
+Returned when a server error occurs:
+
+```json
+{
+  "error": "Internal Server Error",
+  "message": "Detailed error message"
+}
+```

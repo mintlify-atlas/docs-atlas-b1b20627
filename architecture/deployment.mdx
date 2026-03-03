@@ -1,0 +1,244 @@
+---
+title: Deployment
+description: Production deployment configuration and infrastructure
+---
+
+ETHGlobal Explorer is deployed using serverless infrastructure with Vercel and Supabase.
+
+## Infrastructure
+
+### Web application
+
+- **Platform**: Vercel
+- **Framework**: Next.js 15 (App Router)
+- **Rendering**: Server-side rendering (SSR) with client-side hydration
+- **API Routes**: Serverless functions
+- **Production URL**: https://ethglobalexplorer.com
+
+### Database
+
+- **Platform**: Supabase (managed PostgreSQL)
+- **Access**: REST API via `@supabase/supabase-js` client
+- **Connection**: HTTPS with service role key authentication
+
+### Analytics
+
+- **Service**: Vercel Analytics
+- **Integration**: `@vercel/analytics/react` package
+- **Tracking**: Page views, Web Vitals metrics
+
+## Build configuration
+
+### Build command
+
+```bash
+npm run build
+```
+
+This runs `next build`, which:
+- Compiles TypeScript to JavaScript
+- Optimizes React components
+- Generates static pages and API routes
+- Creates production bundles
+
+### Start command (local)
+
+```bash
+npm start
+```
+
+Starts the Next.js production server on port 3000.
+
+### Development command
+
+```bash
+npm run dev
+```
+
+Runs Next.js development server with hot module replacement.
+
+## Environment variables
+
+The following environment variables must be configured in Vercel:
+
+### Required
+
+| Variable | Description | Used in |
+|----------|-------------|----------|
+| `SUPABASE_URL` | Supabase project URL | API routes, Python scripts |
+| `SUPABASE_SERVICE_KEY` | Service role key for admin access | API routes, Python scripts |
+
+<Info>
+These variables are also needed locally in a `.env` file for running Python upload scripts.
+</Info>
+
+### Automatic (Vercel)
+
+Vercel automatically provides:
+
+- `VERCEL_URL` - Deployment URL
+- `VERCEL_ENV` - Environment (production/preview/development)
+- `NEXT_PUBLIC_VERCEL_ENV` - Public environment variable
+
+## Deployment workflow
+
+### Automatic deployments
+
+Vercel automatically deploys:
+
+1. **Production** - Every push to `main` branch → ethglobalexplorer.com
+2. **Preview** - Every pull request → unique preview URL
+
+### Manual deployment
+
+You can also deploy manually using Vercel CLI:
+
+```bash
+npm install -g vercel
+vercel --prod
+```
+
+## API route architecture
+
+### Serverless functions
+
+Each API route (`/api/projects`, `/api/events`) deploys as a separate serverless function:
+
+- **Region**: Auto (closest to user)
+- **Timeout**: 10 seconds (Vercel default)
+- **Memory**: 1024 MB (Vercel default)
+- **Cold start**: ~200-500ms
+
+### Rate limiting
+
+In-memory rate limiting is implemented per function instance:
+
+```typescript
+const WINDOW_SIZE_IN_MINUTES = 15;
+const MAX_REQUESTS_PER_WINDOW = 1000;
+const ipRequests = new Map<string, { count: number, windowStart: number }>();
+```
+
+See `/web-app/src/app/api/projects/route.ts:4-19` for the implementation.
+
+<Note>
+Rate limiting is per-instance, so in a distributed environment, the actual limit may be higher. For stricter limits, consider using an external rate limiting service like Upstash or Vercel Edge Config.
+</Note>
+
+## Database deployment
+
+### Supabase setup
+
+The Supabase database is managed separately:
+
+1. Create tables via Supabase dashboard or SQL editor
+2. Set up foreign key relationships
+3. Configure Row Level Security (RLS) policies if needed
+4. Generate service role key
+
+### Data population
+
+Projects and prizes are added using Python scripts:
+
+```bash
+cd scripts
+python 01_upload_prizes.py
+python 04a_upload_hackathons.py
+python 03_upload_projects.py
+```
+
+These scripts require:
+- Python 3.x
+- `supabase-py` package
+- `python-dotenv` package
+- `.env` file with `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
+
+## Performance optimizations
+
+### Next.js optimizations
+
+- **Image optimization**: Automatic WebP conversion and lazy loading
+- **Font optimization**: Self-hosted Google Fonts with `next/font`
+- **Code splitting**: Automatic route-based splitting
+- **Compression**: Gzip/Brotli compression via Vercel
+
+### Database optimizations
+
+- **Indexing**: Primary keys and foreign keys are automatically indexed
+- **Pagination**: 100 items per page to limit response size
+- **Nested queries**: Single query with joins instead of multiple round trips
+
+### Caching strategy
+
+Currently, no caching is implemented:
+
+- API routes fetch fresh data on every request
+- Consider adding:
+  - Vercel Edge Config for static data (events, prizes list)
+  - SWR or React Query for client-side caching
+  - HTTP cache headers for API responses
+
+## Monitoring and debugging
+
+### Vercel Dashboard
+
+Access deployment logs and analytics:
+
+- Real-time function logs
+- Error tracking
+- Performance metrics (Web Vitals)
+- Deployment history
+
+### Error handling
+
+API routes include comprehensive error handling:
+
+```typescript
+try {
+  // Query logic
+} catch (error) {
+  console.error('Error in projects API:', error);
+  return NextResponse.json(
+    { 
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    },
+    { status: 500 }
+  );
+}
+```
+
+## Security considerations
+
+### Environment variables
+
+- Service keys are stored in Vercel environment variables (encrypted)
+- Never commit `.env` files to version control
+- Use different keys for development and production
+
+### Rate limiting
+
+Protects against abuse:
+- 1000 requests per 15 minutes per IP
+- Returns 429 status with retry information
+- Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+
+### Input validation
+
+API routes validate:
+- Page numbers (parsed as integers)
+- Query parameters (sanitized for SQL injection via Supabase client)
+
+## Scaling considerations
+
+Vercel automatically scales serverless functions:
+
+- **Horizontal scaling**: Multiple function instances under load
+- **Geographic distribution**: Edge network CDN
+- **Concurrent requests**: Up to 1000 concurrent executions (Hobby plan)
+
+Supabase scales independently:
+
+- Connection pooling built-in
+- Upgrade plan for more concurrent connections
+- Read replicas available on higher tiers

@@ -1,0 +1,244 @@
+---
+title: Frontend architecture
+description: Next.js 15 frontend structure, components, and patterns
+---
+
+ETHGlobal Explorer is built with modern React and Next.js technologies, featuring a server-rendered application with client-side interactivity.
+
+## Technology stack
+
+- **Framework**: Next.js 15.1.9 with App Router
+- **React**: Version 19.0.0
+- **Language**: TypeScript 5
+- **Styling**: Tailwind CSS 3.4
+- **Database Client**: @supabase/supabase-js 2.47
+- **Analytics**: Vercel Analytics 1.4
+
+See `/web-app/package.json` for the complete dependency list.
+
+## Project structure
+
+```
+web-app/src/
+├── app/
+│   ├── api/
+│   │   ├── projects/route.ts    # Projects API endpoint
+│   │   └── events/route.ts      # Events API endpoint
+│   ├── layout.tsx               # Root layout with analytics
+│   ├── page.tsx                 # Main homepage component
+│   └── globals.css              # Tailwind directives
+└── lib/
+    └── constants.ts             # Event names, prizes, display mappings
+```
+
+## App Router architecture
+
+### Root layout
+
+The app uses Next.js App Router with a root layout (`layout.tsx`) that:
+
+- Configures Google Fonts (Geist Sans and Geist Mono)
+- Sets metadata (title, description, canonical URL)
+- Includes Vercel Analytics component
+- Defines base HTML structure
+
+### Main page component
+
+The homepage (`page.tsx`) is a **client component** (`'use client'`) that manages:
+
+- Project search and filtering state
+- Pagination (100 items per page)
+- URL parameter synchronization
+- Data fetching from API routes
+
+## State management
+
+### React hooks
+
+All state is managed using React's built-in `useState` hook:
+
+```typescript
+const [data, setData] = useState<Project[]>([]);
+const [currentPage, setCurrentPage] = useState(1);
+const [isLoading, setIsLoading] = useState(true);
+const [totalCount, setTotalCount] = useState(0);
+const [searchTerm, setSearchTerm] = useState(initialParams.get('q') || '');
+const [selectedEvent, setSelectedEvent] = useState(initialParams.get('event') || '');
+const [selectedPrize, setSelectedPrize] = useState(initialParams.get('prize') || '');
+const [selectedTag, setSelectedTag] = useState(initialParams.get('tag') || '');
+```
+
+No external state management library is used.
+
+### URL synchronization
+
+Filter states are synced with URL parameters using the History API:
+
+```typescript
+const params = new URLSearchParams();
+if (searchTerm) params.set('q', searchTerm);
+if (selectedEvent) params.set('event', selectedEvent);
+if (selectedPrize) params.set('prize', selectedPrize);
+if (selectedTag) params.set('tag', selectedTag);
+
+const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+window.history.pushState({}, '', newUrl);
+```
+
+This enables shareable URLs and browser back/forward navigation.
+
+## Real-time search
+
+### Debounced filtering
+
+Search and filter changes are debounced with a 300ms delay to avoid excessive API calls:
+
+```typescript
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setCurrentPage(1);
+    fetchPageData(1);
+    // Update URL
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [searchTerm, selectedEvent, selectedPrize, selectedTag]);
+```
+
+See `page.tsx:58-74` for the implementation.
+
+## API routes
+
+### Projects endpoint
+
+`/api/projects` handles project queries with:
+
+- **Rate limiting**: 1000 requests per 15 minutes per IP
+- **Pagination**: 100 items per page
+- **Filters**: Search term, event, prize, tag (keyword-based)
+- **Nested data**: Projects with associated prizes via Supabase joins
+
+#### Query parameters
+
+- `page` - Page number (default: 1)
+- `q` - Search term (matches project title)
+- `event` - Event name filter
+- `prize` - Prize name filter
+- `tag` - Keyword search in description
+
+#### Response format
+
+```json
+{
+  "data": [
+    {
+      "id": 123,
+      "title": "Project Name",
+      "description": "...",
+      "event": "ETHGlobal Bangkok",
+      "url": "https://ethglobal.com/...",
+      "project_prizes": [
+        {
+          "name": "Chainlink",
+          "img_url": "https://..."
+        }
+      ]
+    }
+  ],
+  "totalCount": 1250
+}
+```
+
+### Events endpoint
+
+`/api/events` provides a simple list of all hackathon events with the same rate limiting.
+
+## UI components
+
+### Filter controls
+
+Four filter inputs allow users to narrow results:
+
+1. **Text search** - Free-form project title search
+2. **Event dropdown** - Select specific hackathon
+3. **Prize dropdown** - Filter by sponsor/prize
+4. **Tag dropdown** - Keyword categories (AI Agents, Stablecoins, NFTs, DAOs)
+
+<Note>
+The tag filter currently performs simple keyword matching on project descriptions. For more accurate results, vector search could be implemented in the future.
+</Note>
+
+### Data table
+
+Projects are displayed in a responsive table with columns:
+
+- **Name** - Clickable link to project showcase
+- **Description** - Truncated text preview
+- **Event** - Formatted event name (e.g., "Bangkok '24")
+- **Prizes** - Sponsor logos as images
+
+### Pagination controls
+
+Previous/Next buttons with current page indicator:
+
+- Disabled states when at boundaries
+- Disabled during loading
+- Resets to page 1 when filters change
+
+## Image optimization
+
+Prize logos use Next.js's `next/image` component for automatic optimization:
+
+```typescript
+<Image 
+  src={prize.img_url}
+  alt={prize.name}
+  title={prize.name}
+  width={24}
+  height={24}
+  className="h-6 w-6 object-contain rounded-full"
+/>
+```
+
+See `page.tsx:205-213` for the full implementation.
+
+## Constants and configuration
+
+The `lib/constants.ts` file exports:
+
+- `allEvents` - Array of all ETHGlobal event names (70+ events)
+- `allPrizes` - Array of all sponsor/prize names (270+ prizes)
+- `eventDisplayNames` - Mapping of full event names to shortened display versions
+
+## Styling approach
+
+Tailwind CSS utility classes are used throughout:
+
+- Responsive design with `md:` breakpoints
+- Hover states on interactive elements
+- Conditional classes for dynamic states
+- Sticky navigation bar
+
+```typescript
+className="px-4 py-2 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+```
+
+## TypeScript interfaces
+
+```typescript
+interface Project {
+  id: number;
+  title: string;
+  project_prizes: Prize[];
+  description: string;
+  event: string;
+  url: string;
+}
+
+interface Prize {
+  name: string;
+  img_url: string;
+}
+```
+
+Defined in `page.tsx:6-18`.

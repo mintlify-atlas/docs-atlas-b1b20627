@@ -1,0 +1,225 @@
+---
+title: Scraping projects
+description: How the project scraping script works with Selenium and BeautifulSoup
+---
+
+The `02_scrape_projects.py` script scrapes all projects from the ETHGlobal showcase page using Selenium WebDriver and BeautifulSoup. It processes 391 pages and saves the data to `ethglobal_projects.json`.
+
+## How it works
+
+The script uses Selenium to navigate through the showcase pages, then parses the HTML with BeautifulSoup to extract project data.
+
+### Main function: `scrape_ethglobal_showcase()`
+
+Located in [02_scrape_projects.py](/home/daytona/workspace/source/scripts/02_scrape_projects.py:13), this function orchestrates the entire scraping process:
+
+```python
+def scrape_ethglobal_showcase():
+    print("Starting scraper...")
+    
+    # Configure Chrome options for faster loading
+    options = webdriver.ChromeOptions()
+    options.add_argument('--disable-images')
+    options.add_argument('--disable-javascript')
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    
+    driver.implicitly_wait(2)
+    
+    total_pages = 391
+    total_projects = 0
+    projects = []  # List to store all project data
+```
+
+## Chrome optimization settings
+
+The script uses several Chrome options to speed up scraping:
+
+<CodeGroup>
+
+```python Speed optimizations
+options.add_argument('--disable-images')      # Don't load images
+options.add_argument('--disable-javascript')  # Don't execute JavaScript
+options.add_argument('--headless')            # Run without GUI
+```
+
+```python Anti-detection (for newer scripts)
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
+options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')
+options.add_argument('--disable-blink-features=AutomationControlled')
+```
+
+</CodeGroup>
+
+<Note>
+  Newer update scripts in `add_new_projects_*/` include anti-detection measures to avoid Cloudflare blocks. These add user agent spoofing and remove automation detection.
+</Note>
+
+## Page iteration
+
+The script loops through all 391 pages of the showcase:
+
+```python
+for page in range(1, total_pages + 1):
+    print(f"\n=== Processing page {page}/{total_pages} ===")
+    driver.get(f"https://ethglobal.com/showcase?page={page}")
+    
+    try:
+        WebDriverWait(driver, 3).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'a[href^="/showcase/"]'))
+        )
+    except:
+        print(f"Warning: Page {page} might not have loaded completely")
+```
+
+### Wait strategy
+
+The script uses explicit waits to ensure the page loads before parsing:
+
+- **Implicit wait**: 2 seconds (applies to all element lookups)
+- **Explicit wait**: 3 seconds for showcase links via `WebDriverWait`
+- Looks for CSS selector: `a[href^="/showcase/"]`
+
+## Data extraction
+
+The script parses each page with BeautifulSoup and extracts project information:
+
+```python
+soup = BeautifulSoup(driver.page_source, 'html.parser')
+all_links = soup.find_all('a')
+
+for link in all_links:
+    if link.get('href') and link.get('href').startswith('/showcase/'):
+        # Extract project data
+        title = description = event = None
+        prizes = []
+        
+        h2 = link.find('h2')
+        if h2:
+            title = h2.text.strip()
+
+        p = link.find('p')
+        if p:
+            description = p.text.strip()
+        
+        div = link.find('div')
+        if div:
+            event = div.text.strip()
+```
+
+### Extracted fields
+
+For each project, the script extracts:
+
+| Field | Source | Example |
+|-------|--------|--------|
+| `title` | `<h2>` tag inside the link | "DeFi Dashboard" |
+| `description` | `<p>` tag inside the link | "Track your DeFi positions" |
+| `event` | `<div>` tag inside the link | "ETHGlobal Bangkok" |
+| `url` | The `href` attribute | "https://ethglobal.com/showcase/..." |
+| `prizes` | `<img>` tags in prize span | Array of image URLs |
+
+## Prize extraction
+
+Prizes are extracted from images within a specific span class:
+
+```python
+# Extract prize images
+spans = link.find_all('span', class_='inline-flex items-center -space-x-2 absolute right-6 transform -translate-y-1/2')
+for span in spans:
+    images = span.find_all('img')
+    for img in images:
+        img_src = img.get('src')
+        if img_src:
+            prizes.append(img_src)
+```
+
+Prize images are stored as an array of URLs:
+
+```json
+"prizes": [
+  "https://ethglobal.b-cdn.net/organizations/026zc/square-logo/default.png",
+  "https://ethglobal.b-cdn.net/organizations/qy8m3/square-logo/default.png"
+]
+```
+
+## Project object structure
+
+Each project is stored as a dictionary:
+
+```python
+if title:
+    project_data = {
+        'title': title,
+        'description': description,
+        'event': event,
+        'url': project_url,
+        'prizes': prizes
+    }
+    projects.append(project_data)
+```
+
+<Warning>
+  The script skips the 33rd project on each page (position 32, zero-indexed). This appears to be a workaround for a specific layout issue on the showcase page.
+</Warning>
+
+## Output format
+
+The script saves all projects to `ethglobal_projects.json`:
+
+```python
+# Save to JSON file
+with open('ethglobal_projects.json', 'w', encoding='utf-8') as f:
+    json.dump({'projects': projects}, f, indent=2, ensure_ascii=False)
+
+print(f"\nScraping complete! Saved {len(projects)} projects to ethglobal_projects.json")
+```
+
+Example output structure:
+
+```json
+{
+  "projects": [
+    {
+      "title": "Crypto Wallet",
+      "description": "A secure wallet for managing crypto assets",
+      "event": "ETHGlobal Bangkok",
+      "url": "https://ethglobal.com/showcase/crypto-wallet-abc123",
+      "prizes": [
+        "https://ethglobal.b-cdn.net/organizations/026zc/square-logo/default.png"
+      ]
+    }
+  ]
+}
+```
+
+## Running the script
+
+Navigate to the scripts directory and run:
+
+```bash
+cd source/scripts
+python 02_scrape_projects.py
+```
+
+Expected output:
+
+```
+Starting scraper...
+
+=== Processing page 1/391 ===
+Scraped project: DeFi Dashboard
+Scraped project: NFT Marketplace
+Total links found on page 1: 32
+Total projects found: 32
+
+=== Processing page 2/391 ===
+...
+
+Scraping complete! Saved 12512 projects to ethglobal_projects.json
+```
+
+## Next steps
+
+After scraping completes, use [03_upload_projects.py](/development/data-pipeline/uploading-data) to upload the JSON data to Supabase.

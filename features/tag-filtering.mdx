@@ -1,0 +1,202 @@
+---
+title: Tag filtering
+description: Filter projects by categories like AI Agent, Stablecoin, NFT, and DAO
+---
+
+Tag filtering helps you discover projects in specific thematic categories. Currently supporting four popular Web3 verticals, this feature enables quick exploration of projects building AI agents, stablecoins, NFT applications, and DAOs.
+
+## Available tags
+
+ETHGlobal Explorer currently supports four tag categories:
+
+### AI Agent
+Projects building autonomous agents, AI-powered automation, and machine learning applications in Web3.
+
+Example use cases:
+- Autonomous trading bots
+- AI-powered smart contract auditors
+- Natural language blockchain interfaces
+- Intelligent protocol optimization
+
+### Stablecoin
+Projects focused on price-stable cryptocurrencies and payment systems.
+
+Example use cases:
+- Novel stablecoin mechanisms
+- Payment infrastructure
+- Stablecoin yield strategies
+- Cross-border remittance solutions
+
+### NFT
+Projects working with non-fungible tokens and digital collectibles.
+
+Example use cases:
+- NFT marketplaces
+- Dynamic NFTs
+- NFT-based gaming
+- Digital identity and credentials
+
+### DAO
+Decentralized autonomous organization tooling and governance systems.
+
+Example use cases:
+- Governance frameworks
+- Treasury management
+- Voting mechanisms
+- DAO coordination tools
+
+## How tag filtering works
+
+### Current implementation
+
+Tag filtering performs a case-insensitive keyword search on project descriptions:
+
+```typescript
+if (selectedTag) {
+  query = query.or(`description.ilike.%${selectedTag}%`);
+  countQuery = countQuery.or(`description.ilike.%${selectedTag}%`);
+}
+```
+
+This searches for the tag keyword anywhere within the project description. For example:
+- Selecting "AI Agent" searches for projects with "AI Agent" in their description
+- Selecting "Stablecoin" finds descriptions containing "Stablecoin"
+
+<Note>
+The current implementation uses single keyword matching, which means it only finds projects with that exact term in their description. Projects that conceptually fit the category but don't use the specific keyword won't appear in results.
+</Note>
+
+### Limitations of keyword search
+
+The current approach has some constraints:
+- **Exact match required**: Only finds the specific keyword, not synonyms
+- **Single term**: Doesn't search for related terms (e.g., "stable" or "USDC" for Stablecoin)
+- **Description dependent**: Relies on how projects describe themselves
+- **No semantic understanding**: Can't infer category from functionality
+
+Example: A project might build a stablecoin but describe it as a "price-stable payment token" without using the word "stablecoin" — it wouldn't appear in Stablecoin tag results.
+
+## Future enhancement: Vector search
+
+The codebase includes comments indicating plans for semantic search:
+
+```typescript
+// Current Tag filter only does a single keyword search on the description,
+// so it's not completely reflective of all projects related to the tag. 
+// Ideally it searches for multiple keywords (eg. "stables", "stablecoin").
+// In the future, vector search should be implemented.
+```
+
+Vector search would enable:
+- **Semantic matching**: Find conceptually similar projects even without exact keywords
+- **Multi-term search**: Match variations like "AI", "artificial intelligence", "machine learning"
+- **Better coverage**: Discover more projects that fit each category
+- **Contextual understanding**: Understand project purpose beyond keyword matching
+
+<Tip>
+For now, combine tag filtering with search to find more projects. For example, search for "AI" with the AI Agent tag, or "DAO" with the DAO tag to catch more variations.
+</Tip>
+
+## URL parameters
+
+Tag selections are reflected in the URL using the `tag` parameter:
+
+<CodeGroup>
+```text AI Agent projects
+https://ethglobalexplorer.com/?tag=AI%20Agent
+```
+
+```text Stablecoin projects
+https://ethglobalexplorer.com/?tag=Stablecoin
+```
+
+```text NFT projects
+https://ethglobalexplorer.com/?tag=NFT
+```
+
+```text DAO projects
+https://ethglobalexplorer.com/?tag=DAO
+```
+
+```text Combined with event
+https://ethglobalexplorer.com/?tag=AI%20Agent&event=ETHGlobal%20Bangkok
+```
+</CodeGroup>
+
+## Tag display in UI
+
+The tag filter is implemented as a dropdown select menu:
+
+```typescript
+<select
+  value={selectedTag}
+  onChange={(e) => setSelectedTag(e.target.value)}
+  className="px-4 py-2 border rounded-md w-full md:w-48 text-black"
+>
+  <option value="">All Tags</option>
+  <option value="AI Agent">AI Agents</option>
+  <option value="Stablecoin">Stablecoins</option>
+  <option value="NFT">NFTs</option>
+  <option value="DAO">DAOs</option>
+</select>
+```
+
+Note the slight difference between the tag value and display text:
+- **AI Agent** → displays as "AI Agents"
+- **Stablecoin** → displays as "Stablecoins"
+- **NFT** → displays as "NFTs"
+- **DAO** → displays as "DAOs"
+
+## Combining with other filters
+
+Tag filtering works alongside all other filters:
+
+### Tag + Event
+Find AI Agent projects at ETHGlobal Bangkok:
+```
+?tag=AI%20Agent&event=ETHGlobal%20Bangkok
+```
+
+### Tag + Prize
+Discover NFT projects that won Polygon prizes:
+```
+?tag=NFT&prize=Polygon
+```
+
+### Tag + Search
+Search for "marketplace" within NFT projects:
+```
+?tag=NFT&q=marketplace
+```
+
+### All filters combined
+Find DAO projects with "governance" in the title from ETHGlobal Prague that won Safe prizes:
+```
+?q=governance&tag=DAO&event=ETHGlobal%20Prague&prize=Safe
+```
+
+<Info>
+All filters are applied using AND logic — projects must match ALL selected criteria to appear in results.
+</Info>
+
+## Implementation reference
+
+The tag filtering logic is located in:
+
+- **Frontend**: `/workspace/source/web-app/src/app/page.tsx:149-166` (tag dropdown with future enhancement comments)
+- **API**: `/workspace/source/web-app/src/app/api/projects/route.ts:118-125` (description search query)
+
+## Why these four tags?
+
+These categories represent major themes in Web3 development:
+
+1. **AI Agent**: Emerging intersection of AI and blockchain
+2. **Stablecoin**: Fundamental infrastructure for payments and DeFi
+3. **NFT**: Digital ownership and creative applications
+4. **DAO**: Decentralized governance and coordination
+
+They're common enough to have substantial projects in each category while being specific enough to be useful for discovery.
+
+<Note>
+Tag categories are hardcoded in the frontend. Future versions may support dynamic tags or user-defined categories.
+</Note>

@@ -1,0 +1,181 @@
+---
+title: Prize filtering
+description: Filter by 270+ prize sponsors including Ethereum Foundation, Base, Polygon, and more
+---
+
+Prize filtering enables you to discover projects that won awards from specific sponsors. With over 270 prize sponsors represented, you can explore projects backed by major protocols, infrastructure providers, and blockchain ecosystems.
+
+## Available prize sponsors
+
+ETHGlobal Explorer tracks prizes from 273 different sponsors. Here's a sample of major sponsors:
+
+### Major Blockchain Networks
+- Ethereum Foundation
+- Polygon
+- Base
+- Arbitrum
+- Optimism
+- Scroll
+- zkSync
+- Starknet
+- Avalanche (via Avail)
+
+### Infrastructure & Tools
+- Chainlink
+- The Graph
+- Alchemy
+- Coinbase Developer Platform
+- Dynamic
+- Privy
+- WalletConnect
+- Safe
+
+### DeFi Protocols
+- Aave
+- Uniswap Foundation
+- Compound Grants Program
+- MakerDAO
+- Liquity
+- Morpho Labs
+
+### Layer 2 Solutions
+- Base
+- Arbitrum
+- Optimism
+- Scroll
+- Taiko
+- Mantle
+- Mode Network
+
+<Info>
+The complete list of all 273 prize sponsors is available in the prize dropdown filter on the main page.
+</Info>
+
+## How prize filtering works
+
+Prize filtering uses a junction table architecture to handle the many-to-many relationship between projects and prizes. A single project can win multiple prizes, and each prize can be awarded to multiple projects.
+
+### Database query flow
+
+```typescript
+if (selectedPrize) {
+  // Step 1: Query the junction table for matching project IDs
+  const { data: projectIds } = await supabase
+    .from('project_prizes')
+    .select('project_id, prize:prize_id!inner(name)')
+    .eq('prize.name', selectedPrize);
+  
+  // Step 2: Filter main query to only include those project IDs
+  if (projectIds) {
+    const ids = projectIds.map(p => p.project_id);
+    query = query.in('id', ids);
+    countQuery = countQuery.in('id', ids);
+  }
+}
+```
+
+This two-step process:
+1. Finds all project IDs that have won the selected prize
+2. Filters the main projects query to only include those IDs
+
+### Data structure
+
+The prize data is structured across three tables:
+- **projects**: Core project information
+- **prizes**: Prize details (name, img_url)
+- **project_prizes**: Junction table linking projects to prizes
+
+## URL parameters
+
+Prize selections are encoded in the URL using the `prize` parameter:
+
+<CodeGroup>
+```text Ethereum Foundation
+https://ethglobalexplorer.com/?prize=Ethereum%20Foundation
+```
+
+```text Polygon
+https://ethglobalexplorer.com/?prize=Polygon
+```
+
+```text Base
+https://ethglobalexplorer.com/?prize=Base
+```
+
+```text Combined with event filter
+https://ethglobalexplorer.com/?prize=Chainlink&event=ETHGlobal%20Bangkok
+```
+
+```text Multiple filters
+https://ethglobalexplorer.com/?q=wallet&prize=Safe&event=ETHGlobal%20Prague
+```
+</CodeGroup>
+
+<Tip>
+Combine prize filtering with event filtering to see which projects won specific sponsor prizes at particular hackathons.
+</Tip>
+
+## Prize display
+
+Prizes are visually represented in the UI using sponsor logos:
+
+```typescript
+<Image 
+  src={prize.img_url}
+  alt={prize.name}
+  title={prize.name}
+  className="h-6 w-6 object-contain rounded-full"
+  width={24}
+  height={24}
+/>
+```
+
+Each prize logo is 24x24 pixels and appears in the "Prizes" column of the projects table. Hovering over a logo displays the full sponsor name.
+
+## Multiple prizes per project
+
+Projects frequently win multiple prizes. For example, a project might win prizes from:
+- Ethereum Foundation (Finalist)
+- Polygon (Best Use of Polygon)
+- The Graph (Best Subgraph)
+- Base (Pool Prize)
+
+All prize logos are displayed inline for each project, allowing you to quickly see all recognitions a project received.
+
+## Prize categories
+
+Sponsors typically offer different types of prizes:
+- **Grand/Pool Prizes**: Open to all participants
+- **Bounties**: Specific technical challenges
+- **Best Use**: Integration awards for using sponsor technology
+- **Finalist**: Top overall projects selected by ETHGlobal
+
+<Note>
+The "Finalist" prize is awarded by ETHGlobal to top projects at each event and represents exceptional overall quality.
+</Note>
+
+## Implementation reference
+
+The prize filtering system is implemented across:
+
+- **Constants**: `/workspace/source/web-app/src/lib/constants.ts:3-274` (prize sponsor list)
+- **Frontend**: `/workspace/source/web-app/src/app/page.tsx:139-148` (prize dropdown)
+- **API**: `/workspace/source/web-app/src/app/api/projects/route.ts:107-117` (junction table query)
+- **Display**: `/workspace/source/web-app/src/app/page.tsx:203-215` (prize logo rendering)
+
+## Combining with other filters
+
+Prize filtering combines with:
+- **Search**: Find specific prize-winning projects by title
+- **Event filtering**: See sponsor prizes at specific hackathons
+- **Tag filtering**: Explore prize-winning projects in categories like AI or NFT
+
+## Sponsor ecosystem insights
+
+Analyzing prize sponsors reveals ecosystem trends:
+- **L2 Focus**: Heavy representation from Arbitrum, Optimism, Base, Scroll, and zkSync
+- **Infrastructure**: Strong presence from oracles (Chainlink, Pyth), indexing (The Graph, Goldsky), and node providers (Alchemy, QuickNode)
+- **Account Abstraction**: Multiple sponsors in smart accounts (Safe, Biconomy, Privy, Dynamic)
+- **Data Availability**: Emerging sponsors like Celestia, Avail, and EigenLayer
+
+This diversity reflects the broad technical focus of ETHGlobal hackathons and the collaborative nature of the Ethereum ecosystem.

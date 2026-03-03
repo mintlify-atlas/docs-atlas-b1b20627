@@ -1,0 +1,249 @@
+---
+title: Uploading data
+description: How to upload scraped project data to Supabase with prize relationships
+---
+
+The `03_upload_projects.py` script reads the `ethglobal_projects.json` file created by the scraping script and uploads all projects to Supabase. It handles prize matching and creates relationships in the junction table.
+
+## How it works
+
+The upload script performs three main operations:
+
+<Steps>
+  <Step title="Read the JSON file">
+    Load `ethglobal_projects.json` containing all scraped project data
+  </Step>
+  <Step title="Upload each project">
+    Insert project records into the `projects` table
+  </Step>
+  <Step title="Create prize relationships">
+    For each prize image, find or create the prize and link it to the project via the `project_prizes` junction table
+  </Step>
+</Steps>
+
+## Main function: `upload_projects()`
+
+Located in [03_upload_projects.py](/home/daytona/workspace/source/scripts/03_upload_projects.py:28), this function orchestrates the upload:
+
+```python
+def upload_projects():
+    print("Starting upload process...")
+    
+    # Read the JSON file
+    with open('ethglobal_projects.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    projects = data['projects'] 
+    total = len(projects)
+    success_count = 0
+    error_count = 0
+    
+    print(f"Found {total} projects to upload")
+```
+
+## Supabase client setup
+
+The script initializes the Supabase client with environment variables:
+
+```python
+from supabase import create_client
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize Supabase client
+supabase = create_client(
+    os.getenv('SUPABASE_URL'),
+    os.getenv('SUPABASE_SERVICE_KEY')
+)
+```
+
+<Note>
+  You need a `.env` file with `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in the scripts directory.
+</Note>
+
+## Project upload loop
+
+The script iterates through each project and inserts it into the database:
+
+```python
+for index, project in enumerate(projects, 1):
+    try:
+        print(f"\nProcessing project {index}/{total}: {project['title']}")
+        
+        # Insert project into Supabase
+        project_result = supabase.table('projects').insert({
+            'title': project['title'],
+            'description': project['description'],
+            'event': project['event'],
+            'url': project['url']
+        }).execute()
+        
+        project_id = project_result.data[0]['id']
+```
+
+### Fields uploaded
+
+The script uploads these fields to the `projects` table:
+
+| Field | Type | Example |
+|-------|------|--------|
+| `title` | string | "DeFi Dashboard" |
+| `description` | string | "Track your DeFi positions" |
+| `event` | string | "ETHGlobal Bangkok" |
+| `url` | string | "https://ethglobal.com/showcase/..." |
+
+<Warning>
+  Prize images are **not** stored directly on the project record. They're handled separately through the junction table.
+</Warning>
+
+## Prize matching: `get_or_create_prize()`
+
+This helper function finds existing prizes by image URL:
+
+```python
+def get_or_create_prize(img_url):
+    # Find existing prize
+    result = supabase.table('prizes').select('id').eq('img_url', img_url).execute()
+    if result.data and len(result.data) > 0:
+        return result.data[0]['id']
+```
+
+Located in [03_upload_projects.py](/home/daytona/workspace/source/scripts/03_upload_projects.py:22), this function:
+
+1. Queries the `prizes` table for a matching `img_url`
+2. Returns the prize `id` if found
+3. Returns `None` if not found (the base script doesn't auto-create unknown prizes)
+
+<Note>
+  The prizes should already exist in the database from running `01_upload_prizes.py`. This script uses a prebuilt dictionary mapping prize URLs to sponsor names.
+</Note>
+
+## Creating prize relationships
+
+After uploading the project, the script processes each prize:
+
+```python
+# Process each prize image
+for prize_url in project['prizes']:
+    try:
+        # Get or create prize
+        prize_id = get_or_create_prize(prize_url)
+        
+        # Create relationship in junction table
+        supabase.table('project_prizes').insert({
+            'project_id': project_id,
+            'prize_id': prize_id
+        }).execute()
+    except Exception as prize_error:
+        print(f"Error processing prize {prize_url}: {str(prize_error)}")
+```
+
+### Junction table structure
+
+The `project_prizes` table creates many-to-many relationships:
+
+```sql
+CREATE TABLE project_prizes (
+  project_id UUID REFERENCES projects(id),
+  prize_id UUID REFERENCES prizes(id),
+  PRIMARY KEY (project_id, prize_id)
+);
+```
+
+This allows:
+
+- One project to have multiple prizes
+- One prize to be awarded to multiple projects
+
+## Error handling
+
+The script tracks successes and errors:
+
+```python
+success_count += 1
+print(f"Successfully uploaded: {project['title']}")
+
+except Exception as e:
+    error_count += 1
+    print(f"Error uploading {project['title']}: {str(e)}")
+```
+
+Final summary:
+
+```python
+print(f"\nUpload complete!")
+print(f"Successfully uploaded: {success_count}")
+print(f"Errors: {error_count}")
+```
+
+## Handling unknown prizes
+
+Newer update scripts include a warning for unknown prizes:
+
+```python
+def get_or_create_prize(img_url):
+    # Find existing prize
+    result = supabase.table('prizes').select('id').eq('img_url', img_url).execute()
+    if result.data and len(result.data) > 0:
+        return result.data[0]['id']
+    
+    # For unknown prizes, skip them and log a warning
+    print(f"Warning: Unknown prize image URL: {img_url}")
+    print("Skipping this prize to avoid creating unnamed prize entries.")
+    return None
+```
+
+From [upload_ny_and_unite_projects.py](/home/daytona/workspace/source/scripts/add_new_projects_oct_24/upload_ny_and_unite_projects.py:19), this prevents creating unnamed prize entries when new sponsors appear.
+
+## Running the script
+
+After running `02_scrape_projects.py`, upload the data:
+
+```bash
+cd source/scripts
+python 03_upload_projects.py
+```
+
+Expected output:
+
+```
+Starting upload process...
+Found 12512 projects to upload
+
+Processing project 1/12512: DeFi Dashboard
+Successfully uploaded: DeFi Dashboard
+
+Processing project 2/12512: NFT Marketplace
+Successfully uploaded: NFT Marketplace
+
+...
+
+Upload complete!
+Successfully uploaded: 12500
+Errors: 12
+```
+
+## Duplicate prevention
+
+Update scripts include duplicate checking:
+
+```python
+# Check if project already exists
+existing = supabase.table('projects').select('id').eq('url', project['url']).execute()
+if existing.data and len(existing.data) > 0:
+    print(f"Project already exists: {project['title']}")
+    continue
+```
+
+This is used in scripts like [upload_ny_and_unite_projects.py](/home/daytona/workspace/source/scripts/add_new_projects_oct_24/upload_ny_and_unite_projects.py:52) to avoid re-uploading projects when running incremental updates.
+
+## Next steps
+
+After uploading projects, you may need to:
+
+- Run `04a_upload_hackathons.py` to add hackathon metadata
+- Run `05_scrape_hackathons.py` to get hackathon logos and dates
+- Use the [updating database](/development/data-pipeline/updating-database) scripts to add new events

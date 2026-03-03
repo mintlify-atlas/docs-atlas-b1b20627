@@ -1,0 +1,107 @@
+---
+title: Data pipeline overview
+description: Understanding the ETHGlobal Explorer data pipeline for scraping and uploading project data
+---
+
+The ETHGlobal Explorer data pipeline is a three-step process that scrapes project data from the ETHGlobal showcase, stores it in JSON files, and uploads it to Supabase.
+
+## Pipeline architecture
+
+The pipeline follows a simple, reliable architecture:
+
+<Steps>
+  <Step title="Scrape project data">
+    Use Selenium to scrape all projects from the ETHGlobal showcase page and save to JSON
+  </Step>
+  <Step title="Save to JSON">
+    Store scraped data in `ethglobal_projects.json` with project titles, descriptions, events, URLs, and prize images
+  </Step>
+  <Step title="Upload to Supabase">
+    Read the JSON file and upload projects to the database, creating prize relationships via a junction table
+  </Step>
+</Steps>
+
+<Note>
+  The pipeline was originally designed to scrape and upload in a single script, but separating these operations proved more reliable.
+</Note>
+
+## Script execution order
+
+Run the scripts in the following order to populate your database:
+
+1. **`01_upload_prizes.py`** - Upload prizes to the database using a prebuilt dictionary of prize logo URLs and names
+2. **`02_scrape_projects.py`** - Scrape all 391 pages of the showcase and save project data to JSON
+3. **`03_upload_projects.py`** - Upload the scraped projects from JSON to the database
+4. **`04a_upload_hackathons.py`** - Upload hackathon names from `ethglobal_hackathons.json`
+5. **`05_scrape_hackathons.py`** - Scrape hackathon metadata (logos, dates, types) from the events page
+
+## Database schema
+
+The pipeline populates three main tables:
+
+### Projects table
+
+Stores core project information:
+
+- `id` - Primary key
+- `title` - Project name
+- `description` - Project description
+- `event` - Hackathon name (e.g., "ETHGlobal Bangkok")
+- `url` - Link to the project showcase page
+
+### Prizes table
+
+Stores sponsor prize information:
+
+- `id` - Primary key
+- `name` - Sponsor name (e.g., "Uniswap Foundation")
+- `img_url` - Logo URL from ETHGlobal's CDN
+
+### Project prizes junction table
+
+Creates many-to-many relationships between projects and prizes:
+
+- `project_id` - Foreign key to projects
+- `prize_id` - Foreign key to prizes
+
+<Note>
+  A single project can win multiple prizes, and a single prize can be awarded to multiple projects. The junction table handles these many-to-many relationships.
+</Note>
+
+## Current limitations
+
+Based on [the source README](/home/daytona/workspace/source/README.md:13-15), the pipeline has some known limitations:
+
+### Data quality issues
+
+- ETHGlobal's showcase only has data from **HackMoney 2020 onwards** (no ETHNYC or earlier events)
+- Prize data is only available from **HackFS 2021 onwards**
+- Some hackathon slugs with working links start at `/spacewarp` and `/hackfs2022` - earlier events use different URLs or are broken
+- Some sponsor logos show as generic trophy icons when ETHGlobal doesn't have the actual logo
+
+### Manual updates required
+
+Currently, adding projects from new hackathons requires manual intervention with dated update scripts (see `add_new_projects_*/` directories).
+
+## Future improvements
+
+The goal is to simplify database updates:
+
+<Warning>
+  **Next steps**: Make updating the database easier. Ideally, when there's a new hackathon, you can run a single script to update all tables.
+</Warning>
+
+The planned improvement:
+
+```python
+# Future goal: single command to update everything
+python update_event.py bangkok
+```
+
+This script would:
+
+1. Check for any new sponsors from the event
+2. Scrape all projects from that hackathon
+3. Update the database accordingly
+
+See [updating the database](/development/data-pipeline/updating-database) for current workarounds using the dated update scripts.

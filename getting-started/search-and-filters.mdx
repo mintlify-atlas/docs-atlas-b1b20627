@@ -1,0 +1,200 @@
+---
+title: Search and filters
+description: Master the search and filtering features to quickly find specific hackathon projects
+---
+
+ETHGlobal Explorer provides powerful search and filtering capabilities to help you discover projects that match your interests. All filters work together and update in real-time as you type or select options.
+
+## Text search
+
+The search bar allows you to find projects by title:
+
+<Steps>
+  <Step title="Enter your search term">
+    Type any text into the "Search projects..." input field at the top left of the page.
+  </Step>
+  
+  <Step title="View results automatically">
+    Results filter automatically as you type with a 300ms debounce. You don't need to press Enter or click a search button.
+  </Step>
+</Steps>
+
+<Tip>
+The search is case-insensitive and matches partial project titles. For example, searching "wallet" will find projects with "Wallet", "wallet", or "WalletGuard" in their names.
+</Tip>
+
+## Filter by event
+
+The Events dropdown lets you view projects from specific hackathons:
+
+### Available events
+
+The explorer includes 65+ events spanning from 2020 to 2025:
+
+**Recent events (2025)**
+- Buenos Aires '25
+- ETHOnline '25
+- New Delhi '25
+- NYC '25
+- Cannes '25
+- Prague '25
+- Taipei '25
+
+**2024 events**
+- Bangkok '24
+- SF '24
+- Singapore '24
+- ETHOnline '24
+- Superhack '24
+- Brussels '24
+- Sydney '24
+- Scaling Ethereum '24
+- London '24
+
+**Special themed events**
+- Trifecta - TEE (Trusted Execution Environments)
+- Trifecta - ZK (Zero Knowledge)
+- Trifecta - Agents
+- Agentic Ethereum
+- StarkHack
+- Frameworks
+- Circuit Breaker
+- LFGHO
+- Autonomous Worlds
+- Unite Defi
+
+**And many more** including events from 2023, 2022, 2021, and 2020.
+
+<Info>
+Event names are displayed in shortened format in the table (e.g., "Bangkok '24") but shown with full names in the dropdown (e.g., "ETHGlobal Bangkok").
+</Info>
+
+## Filter by prize
+
+The Prizes dropdown allows you to filter projects that won prizes from specific sponsors:
+
+### Prize sponsors
+
+The explorer tracks 250+ prize sponsors including:
+
+**Infrastructure & Tools**
+- Chainlink, The Graph, Filecoin, IPFS
+- Alchemy, QuickNode, Tenderly
+- Safe, Gnosis, WalletConnect
+
+**Layer 1 & Layer 2**
+- Ethereum Foundation, Polygon, Arbitrum, Optimism
+- Base, Scroll, zkSync, Starknet
+- Celestia, Avail, EigenLayer
+
+**DeFi Protocols**
+- Aave, Uniswap Foundation, Compound Grants Program
+- MakerDAO, Curve Protocol, Liquity
+- Morpho Labs, Euler, Superfluid
+
+**Identity & Authentication**
+- Worldcoin, ENS, Lens Protocol
+- Dynamic, Privy, Web3Auth
+- Sign Protocol, Ethereum Attestation Service
+
+**AI & Compute**
+- Galadriel, Hyperbolic, Lilypad
+- Phala Network, Nillion, Fhenix
+
+**Oracles & Data**
+- Pyth Network, Chronicle Protocol, Tellor
+- Axiom, Herodotus, Brevis
+
+**And many more** including stablecoin issuers (Circle, PayPal USD), NFT platforms (Zora, OpenSea), gaming infrastructure (Cartridge), and emerging technologies.
+
+<Tip>
+Projects can win multiple prizes. When you filter by a specific prize sponsor, you'll see all projects that won at least one prize from that sponsor, even if they also won prizes from other sponsors.
+</Tip>
+
+## Filter by tags
+
+The Tags dropdown provides category-based filtering for common technology themes:
+
+### Available tags
+
+- **AI Agents**: Projects involving autonomous AI agents and intelligent automation
+- **Stablecoins**: Projects working with or building stablecoin infrastructure
+- **NFTs**: Projects focused on non-fungible tokens and digital collectibles
+- **DAOs**: Projects building decentralized autonomous organizations or DAO tooling
+
+<Note>
+Tag filtering currently uses keyword matching on project descriptions. The filter searches for terms like "AI Agent" for the AI Agents tag, "Stablecoin" for Stablecoins, etc. This means some relevant projects might not appear if they use alternative terminology.
+</Note>
+
+## Combining filters
+
+All filter options work together to create powerful, targeted searches:
+
+**Example workflows:**
+
+1. **Find AI agent projects from recent events**
+   - Set Tags to "AI Agents"
+   - Set Events to "Bangkok '24" or "Trifecta - Agents"
+
+2. **Discover Chainlink-powered DeFi projects**
+   - Set Prizes to "Chainlink"
+   - Search for "swap", "lending", or "defi" in the search bar
+
+3. **Browse all Base projects from 2024**
+   - Set Prizes to "Base"
+   - Filter through 2024 events in the Events dropdown
+
+<Tip>
+When you apply multiple filters, only projects matching ALL selected criteria will appear. This AND logic helps you narrow down to exactly what you're looking for.
+</Tip>
+
+## Sharing filtered views
+
+Your filter selections are automatically saved to the URL:
+
+<Steps>
+  <Step title="Apply your filters">
+    Set up your desired combination of search term, event, prize, and tag filters.
+  </Step>
+  
+  <Step title="Copy the URL">
+    The URL updates automatically to include parameters like `?event=bangkok&prize=Base&tag=AI%20Agent`.
+  </Step>
+  
+  <Step title="Share the link">
+    Anyone who opens your URL will see the same filtered view you created.
+  </Step>
+</Steps>
+
+### URL parameters
+
+The explorer supports these URL parameters:
+
+- `q` - Search query (e.g., `?q=wallet`)
+- `event` - Event filter (e.g., `?event=ETHGlobal%20Bangkok`)
+- `prize` - Prize filter (e.g., `?prize=Chainlink`)
+- `tag` - Tag filter (e.g., `?tag=AI%20Agent`)
+- `page` - Page number (e.g., `?page=2`)
+
+<Info>
+You can combine multiple parameters: `?event=ETHGlobal%20Bangkok&prize=Base&tag=AI%20Agent&page=1`
+</Info>
+
+## Filter behavior
+
+### Real-time updates
+
+- **Search**: Results update 300ms after you stop typing
+- **Dropdowns**: Results update immediately when you select an option
+- **Page reset**: Changing any filter automatically returns you to page 1
+
+### Clearing filters
+
+To clear a filter:
+
+- **Search bar**: Delete all text or clear the input field
+- **Dropdowns**: Select the "All Events", "All Prizes", or "All Tags" option at the top of each dropdown
+
+<Tip>
+The browser's back and forward buttons work with filter changes, so you can easily navigate through your filter history.
+</Tip>

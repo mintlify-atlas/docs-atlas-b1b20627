@@ -1,0 +1,145 @@
+---
+title: Event filtering
+description: Filter projects by ETHGlobal hackathon events from 2020 to 2025
+---
+
+Event filtering allows you to browse projects from specific ETHGlobal hackathons. With over 60 events spanning from 2020 to 2025, you can explore projects from Bangkok, Prague, Singapore, and many more locations worldwide.
+
+## Available events
+
+ETHGlobal Explorer includes projects from 67 hackathon events. Here are some recent highlights:
+
+### 2025 Events
+- Buenos Aires '25
+- ETHOnline '25
+- New Delhi '25
+- NYC '25
+- Cannes '25
+- Prague '25
+- Taipei '25
+- Trifecta series (TEE, Zero Knowledge, Agents)
+
+### 2024 Events
+- Bangkok '24
+- San Francisco '24
+- Singapore '24
+- ETHOnline '24
+- Superhack '24
+- Brussels '24
+- Sydney '24
+- Scaling Ethereum '24
+- London '24
+
+### 2023 Events
+- India '23
+- Istanbul '23
+- ETHOnline '23
+- NYC '23
+- Paris '23
+- Waterloo '23
+- Lisbon '23
+- Tokyo '23
+
+<Tip>
+The complete list of all 67 events is available in the event dropdown filter on the main page.
+</Tip>
+
+## Event display names
+
+The application uses friendly shortened names for better readability:
+
+- **Stored value**: `ETHGlobal Prague`
+- **Display name**: `Prague '25`
+
+- **Stored value**: `ETHGlobal San Francisco`
+- **Display name**: `SF '24`
+
+- **Stored value**: `ETHGlobal Trifecta - Trusted Execution Environments`
+- **Display name**: `Trifecta - TEE`
+
+This mapping is defined in `/workspace/source/web-app/src/lib/constants.ts:276-309` and ensures consistent display formatting across the application.
+
+## How event filtering works
+
+Event filtering performs an exact match query against the `event` column in the projects table:
+
+```typescript
+if (selectedEvent) {
+  query = query.eq('event', selectedEvent);
+  countQuery = countQuery.eq('event', selectedEvent);
+}
+```
+
+Each project is associated with exactly one event where it was submitted.
+
+## URL parameters
+
+Event selections are reflected in the URL using the `event` parameter:
+
+<CodeGroup>
+```text Prague 2025
+https://ethglobalexplorer.com/?event=ETHGlobal%20Prague
+```
+
+```text Bangkok 2024
+https://ethglobalexplorer.com/?event=ETHGlobal%20Bangkok
+```
+
+```text Trifecta - Agents
+https://ethglobalexplorer.com/?event=ETHGlobal%20Trifecta%20-%20Agents
+```
+
+```text Combined with search
+https://ethglobalexplorer.com/?q=wallet&event=ETHGlobal%20Singapore
+```
+</CodeGroup>
+
+<Info>
+The event parameter uses the full internal event name (e.g., `ETHGlobal Prague`), not the shortened display name (`Prague '25`).
+</Info>
+
+## Event data structure
+
+Events are stored as two separate arrays in the constants file:
+
+1. **allEvents** (`constants.ts:1`): Array of all event names in chronological order
+2. **eventDisplayNames** (`constants.ts:276`): Mapping object for shortened display names
+
+Events without a display name mapping fall back to showing their full stored name.
+
+## Combining with other filters
+
+Event filtering works alongside:
+- **Search**: Find specific projects within an event
+- **Prize filtering**: See which projects won prizes at a specific event
+- **Tag filtering**: Explore themed projects (AI, NFT, DAO) from a particular hackathon
+
+<Note>
+Some older events may have fewer projects as the database was populated from more recent data scraping efforts.
+</Note>
+
+## Implementation reference
+
+The event filtering logic is implemented in:
+
+- **Constants**: `/workspace/source/web-app/src/lib/constants.ts:1` (event list)
+- **Frontend**: `/workspace/source/web-app/src/app/page.tsx:127-138` (event dropdown)
+- **API**: `/workspace/source/web-app/src/app/api/projects/route.ts:103-106` (database query)
+
+## Special events
+
+Some events have unique formats:
+
+### Trifecta Series
+The ETHGlobal Trifecta was split into three specialized tracks:
+- Trusted Execution Environments (TEE)
+- Zero Knowledge (ZK)
+- Agents
+
+### Online Events
+Multi-year online events are distinguished by year:
+- ETHOnline '25
+- ETHOnline '24
+- ETHOnline 2023
+- ETHOnline 2022
+- ETHOnline 2021

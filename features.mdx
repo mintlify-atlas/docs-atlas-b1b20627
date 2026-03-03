@@ -1,0 +1,128 @@
+---
+title: Features
+description: Powerful search and filtering tools to explore 13,000+ ETHGlobal hackathon projects
+---
+
+# Features
+
+ETHGlobal Explorer provides comprehensive tools to search, filter, and discover hackathon projects from 60+ ETHGlobal events. Explore innovative blockchain projects with advanced filtering capabilities.
+
+## Search functionality
+
+Quickly find projects by searching across project titles. The search feature provides:
+
+- **Real-time search** - Results update as you type with a 300ms debounce
+- **Case-insensitive matching** - Find projects regardless of capitalization
+- **URL parameter support** - Share searches with direct links using the `?q=` parameter
+
+<Info>
+  The search currently matches against project titles. Description search is available through tag filtering.
+</Info>
+
+## Event filtering
+
+Browse projects from specific ETHGlobal hackathons with event filtering:
+
+- **60+ events** - From HackMoney 2020 to the latest hackathons
+- **Global coverage** - Events from Bangkok, San Francisco, Singapore, Brussels, Istanbul, and more
+- **Online hackathons** - Includes ETHOnline 2024, 2025, and specialized events like Trifecta series
+- **Display names** - Events shown with friendly names (e.g., "Bangkok '24", "NYC '25")
+
+### Featured events
+
+<CardGroup cols={2}>
+  <Card title="Recent events" icon="calendar-days">
+    ETHGlobal Buenos Aires, New Delhi, Cannes, Prague, Taipei, Bangkok, San Francisco, Singapore
+  </Card>
+  <Card title="Online events" icon="wifi">
+    ETHOnline 2025, ETHOnline 2024, Trifecta (TEE, ZK, Agents), Agentic Ethereum
+  </Card>
+  <Card title="2023 events" icon="clock">
+    Istanbul, Paris, Waterloo, Lisbon, Tokyo, NYC, Superhack, ETHOnline 2023
+  </Card>
+  <Card title="Specialized" icon="wrench">
+    Scaling Ethereum, StarkHack, HackFS, Frameworks, Circuit Breaker, Autonomous Worlds
+  </Card>
+</CardGroup>
+
+## Prize filtering
+
+Discover projects that won prizes from specific sponsors. Filter by over 270 sponsors including:
+
+- **Layer 1 & Layer 2** - Ethereum Foundation, Polygon, Arbitrum, Optimism, Base, zkSync, Scroll, Starknet, Taiko
+- **DeFi protocols** - Uniswap Foundation, Aave, Compound, MakerDAO, Curve, Morpho Labs, Liquity
+- **Infrastructure** - Chainlink, The Graph, Filecoin, IPFS, Worldcoin, Farcaster, Lens Protocol
+- **Developer tools** - Alchemy, QuickNode, Tenderly, Hardhat, thirdweb, WalletConnect, Dynamic
+- **Zero knowledge** - Risc Zero, Axiom, Sindri, Succinct, Mina Protocol, Polygon ZK, vlayer Labs
+- **Account abstraction** - Safe, Biconomy, Pimlico, Alchemy, Coinbase Developer Platform
+
+<Note>
+  Prize logos are displayed on project cards. Some older sponsors may show a generic trophy icon if logo data is unavailable from ETHGlobal.
+</Note>
+
+## Tag-based filtering
+
+Explore projects by technology category or theme:
+
+- **AI Agents** - Projects involving autonomous AI agents and agent frameworks
+- **Stablecoins** - Projects focused on stablecoin infrastructure and applications
+- **NFTs** - Projects building NFT platforms, tools, and experiences
+- **DAOs** - Projects related to decentralized autonomous organizations and governance
+
+<Info>
+  Tag filtering currently performs keyword searches on project descriptions. More sophisticated tag matching and vector search capabilities are planned for future releases.
+</Info>
+
+## Pagination and performance
+
+- **100 projects per page** - Optimized for fast loading and browsing
+- **Page navigation** - Previous/Next buttons with current page indicator
+- **Total count tracking** - See how many projects match your current filters
+- **Loading states** - Clear visual feedback during data fetching
+
+## URL-based filtering
+
+All filters are reflected in the URL, making it easy to:
+
+- **Share filtered views** - Send direct links to specific search results
+- **Bookmark searches** - Save frequently used filter combinations
+- **Browser history** - Navigate back and forward through your searches
+
+Example URL: `ethglobalexplorer.com?event=ETHGlobal%20Bangkok&prize=Base&tag=AI%20Agent`
+
+## Project details
+
+Each project in the results displays:
+
+- **Project name** - Clickable link to the ETHGlobal showcase page
+- **Description** - Summary of what the project does
+- **Event** - Which hackathon the project was built at
+- **Prize logos** - Visual indicators of which sponsor prizes the project won
+
+<CardGroup cols={2}>
+  <Card title="Direct links" icon="link">
+    Click any project name to view the full showcase page on ethglobal.com
+  </Card>
+  <Card title="Prize information" icon="trophy">
+    Hover over prize logos to see the sponsor name
+  </Card>
+</CardGroup>
+
+## Rate limiting
+
+The API includes rate limiting to ensure fair usage:
+
+- **1,000 requests per 15-minute window** per IP address
+- **Rate limit headers** - Check remaining requests and reset time
+- **Automatic cleanup** - Old rate limit entries are automatically removed
+
+## Data quality
+
+<Note>
+  ETHGlobal Explorer pulls data directly from ETHGlobal's showcase page. Data quality notes:
+  
+  - Events prior to HackMoney 2020 are not available
+  - Prize logo data is available from HackFS 2021 onwards
+  - Some older event links may use different URL formats
+  - Sponsor logos may show generic icons if not provided by ETHGlobal
+</Note>

@@ -1,0 +1,167 @@
+---
+title: Rate limiting
+description: Understanding rate limits and how they protect the ETHGlobal Explorer API
+---
+
+The ETHGlobal Explorer API implements rate limiting to ensure fair usage and protect the service from abuse.
+
+## Rate limit configuration
+
+All API endpoints are subject to the following rate limits:
+
+- **Limit**: 1000 requests per 15-minute window
+- **Tracking method**: Per IP address
+- **Window type**: Sliding window
+
+## How it works
+
+The rate limiting implementation (from route.ts:4-72) uses the following approach:
+
+### IP address tracking
+
+Requests are tracked based on the client's IP address, extracted from the `x-forwarded-for` header:
+
+```typescript
+const ip = request.headers.get('x-forwarded-for') ?? '127.0.0.1';
+```
+
+If the header is not present (e.g., local development), it defaults to `127.0.0.1`.
+
+### Sliding window
+
+Each IP address has a 15-minute window that slides with each request:
+
+- When a request arrives, the system checks if the IP has an active window
+- If the window has expired (>15 minutes old), a new window starts
+- If the window is active, the request count is incremented
+- If the count exceeds 1000, the request is rejected
+
+### In-memory storage
+
+The implementation uses an in-memory Map to track requests:
+
+```typescript
+const ipRequests = new Map<string, { count: number, windowStart: number }>();
+```
+
+This approach is serverless-friendly and doesn't require external dependencies. Old entries are automatically cleaned up on each request to prevent memory leaks.
+
+## Rate limit response
+
+When you exceed the rate limit, the API returns a `429 Too Many Requests` status with the following response:
+
+```json
+{
+  "error": "Too many requests"
+}
+```
+
+### Response headers
+
+The 429 response includes headers that help you understand the rate limit status:
+
+<ResponseField name="X-RateLimit-Limit" type="string">
+  The maximum number of requests allowed in the window (always `"1000"`).
+</ResponseField>
+
+<ResponseField name="X-RateLimit-Remaining" type="string">
+  The number of requests remaining in the current window (always `"0"` when rate limited).
+</ResponseField>
+
+<ResponseField name="X-RateLimit-Reset" type="string">
+  Unix timestamp (in milliseconds) when the rate limit window will reset.
+</ResponseField>
+
+## Example rate limit response
+
+```bash
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1709481600000
+Content-Type: application/json
+
+{
+  "error": "Too many requests"
+}
+```
+
+## Handling rate limits
+
+When building applications that consume the API, implement proper rate limit handling:
+
+### Retry with exponential backoff
+
+```javascript
+async function fetchWithRetry(url, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    const response = await fetch(url);
+    
+    if (response.status === 429) {
+      const resetTime = response.headers.get('X-RateLimit-Reset');
+      const waitTime = resetTime ? parseInt(resetTime) - Date.now() : 60000;
+      
+      console.log(`Rate limited. Waiting ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      continue;
+    }
+    
+    return response;
+  }
+  
+  throw new Error('Max retries exceeded');
+}
+```
+
+### Monitor rate limit headers
+
+```javascript
+const response = await fetch('/api/projects');
+
+const limit = response.headers.get('X-RateLimit-Limit');
+const remaining = response.headers.get('X-RateLimit-Remaining');
+const reset = response.headers.get('X-RateLimit-Reset');
+
+console.log(`Rate limit: ${remaining}/${limit} requests remaining`);
+```
+
+### Cache responses
+
+Reduce API calls by implementing client-side caching:
+
+```javascript
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function cachedFetch(url) {
+  const cached = cache.get(url);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  
+  const response = await fetch(url);
+  const data = await response.json();
+  
+  cache.set(url, { data, timestamp: Date.now() });
+  return data;
+}
+```
+
+## Best practices
+
+<Card title="Implement caching" icon="database">
+  Cache API responses to reduce the number of requests and improve performance.
+</Card>
+
+<Card title="Handle 429 responses" icon="triangle-exclamation">
+  Always check for 429 status codes and implement retry logic with appropriate delays.
+</Card>
+
+<Card title="Monitor usage" icon="chart-line">
+  Track your API usage patterns to ensure you stay within rate limits during peak times.
+</Card>
+
+<Card title="Use pagination wisely" icon="list">
+  Fetch only the pages you need instead of requesting all data at once.
+</Card>
